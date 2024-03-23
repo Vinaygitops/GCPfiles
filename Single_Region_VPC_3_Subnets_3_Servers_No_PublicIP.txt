@@ -1,0 +1,45 @@
+#This Script Creates a VPC with 3 Subnets in one regions and deploy 3 f1.micro
+#Ubuntu servers.
+VPC="natgw"
+
+#VPC Creation
+gcloud compute networks create ${VPC} --project=rtcm-project --description=${VPC} --subnet-mode=custom --mtu=1500 --bgp-routing-mode=regional
+
+#Firewall Rules Creation
+gcloud compute firewall-rules create ${VPC}-allow-ingress --project=rtcm-project --network=projects/rtcm-project/global/networks/${VPC} --description=Allows\ connection\ from\ any\ source\ to\ any\ instance\ on\ the\ network\ using\ custom\ protocols. --direction=INGRESS --priority=100 --source-ranges=0.0.0.0/0 --action=ALLOW --rules=all
+
+gcloud compute firewall-rules create ${VPC}-allow-egress --project=rtcm-project --network=projects/rtcm-project/global/networks/${VPC} --description=Allows\ connection\ from\ any\ source\ to\ any\ instance\ on\ the\ network\ using\ custom\ protocols. --direction=EGRESS --priority=100 --action=ALLOW --rules=all
+
+
+#Subnets Creation
+gcloud compute networks subnets create ${VPC}-subnet-1 --project=rtcm-project --description=${VPC}-subnet-1 --range=10.1.1.0/24 --network=${VPC} --region=us-east1 --enable-private-ip-google-access --enable-flow-logs --logging-aggregation-interval=interval-15-min --logging-flow-sampling=0.5 --logging-metadata=include-all
+
+gcloud compute networks subnets create ${VPC}-subnet-2 --project=rtcm-project --description=${VPC}-subnet-2 --range=10.1.2.0/24 --network=${VPC} --region=us-east1 --enable-private-ip-google-access --enable-flow-logs --logging-aggregation-interval=interval-15-min --logging-flow-sampling=0.5 --logging-metadata=include-all
+
+gcloud compute networks subnets create ${VPC}-subnet-3 --project=rtcm-project --description=${VPC}-subnet-3 --range=10.1.3.0/24 --network=${VPC} --region=us-east1 --enable-private-ip-google-access --enable-flow-logs --logging-aggregation-interval=interval-15-min --logging-flow-sampling=0.5 --logging-metadata=include-all
+
+#Cloud Router Creation
+gcloud compute routers create ${VPC}-cr --project=rtcm-project --description=${VPC}-cr --region=us-east1 --network=${VPC}
+
+#Instance Creation
+gcloud compute instances create ${VPC}-instance-1 --project=rtcm-project --zone=us-east1-b --machine-type=f1-micro --network-interface=network-tier=PREMIUM,subnet=${VPC}-subnet-1 --maintenance-policy=MIGRATE --no-service-account --no-scopes --create-disk=auto-delete=yes,boot=yes,device-name=${VPC}-instance-1,image=projects/ubuntu-os-cloud/global/images/ubuntu-2004-focal-v20220308,mode=rw,size=10,type=projects/rtcm-project/zones/us-east1-b/diskTypes/pd-balanced --no-shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --reservation-affinity=any
+
+gcloud compute instances create ${VPC}-instance-2 --project=rtcm-project --zone=us-east1-c --machine-type=f1-micro --network-interface=network-tier=PREMIUM,subnet=${VPC}-subnet-2,no-address --maintenance-policy=MIGRATE --no-service-account --no-scopes --create-disk=auto-delete=yes,boot=yes,device-name=${VPC}-instance-2,image=projects/ubuntu-os-cloud/global/images/ubuntu-2004-focal-v20220308,mode=rw,size=10,type=projects/rtcm-project/zones/us-east1-b/diskTypes/pd-balanced --no-shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --reservation-affinity=any
+
+gcloud compute instances create ${VPC}-instance-3 --project=rtcm-project --zone=us-east1-d --machine-type=f1-micro --network-interface=network-tier=PREMIUM,subnet=${VPC}-subnet-3,no-address --maintenance-policy=MIGRATE --no-service-account --no-scopes --create-disk=auto-delete=yes,boot=yes,device-name=${VPC}-instance-3,image=projects/ubuntu-os-cloud/global/images/ubuntu-2004-focal-v20220308,mode=rw,size=10,type=projects/rtcm-project/zones/us-east1-b/diskTypes/pd-balanced --no-shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --reservation-affinity=any
+
+gcloud compute instances list
+
+#Deletion
+gcloud compute instances delete  ${VPC}-instance-1 --project=rtcm-project --zone=us-east1-b --quiet
+gcloud compute instances delete  ${VPC}-instance-2 --project=rtcm-project --zone=us-east1-c --quiet
+gcloud compute instances delete  ${VPC}-instance-3 --project=rtcm-project --zone=us-east1-d --quiet
+gcloud compute firewall-rules delete ${VPC}-allow-ingress --quiet
+gcloud compute firewall-rules delete ${VPC}-allow-egress --quiet
+gcloud compute networks subnets delete ${VPC}-subnet-1 --project=rtcm-project --region us-east1 --quiet
+gcloud compute networks subnets delete ${VPC}-subnet-2 --project=rtcm-project --region us-east1 --quiet
+gcloud compute networks subnets delete ${VPC}-subnet-3 --project=rtcm-project --region us-east1 --quiet
+gcloud compute networks delete $VPC --quiet
+gcloud compute networks list
+
+
